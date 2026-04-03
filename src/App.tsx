@@ -4,15 +4,16 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, Upload, Filter, Search, IndianRupee, Receipt, Wallet, ArrowUpRight, ArrowDownLeft, CheckCircle2, XCircle, Trash2, TrendingUp, Coins, BarChart3, Calendar, Tag, AlertCircle, CheckCircle, Info, Loader2 } from 'lucide-react';
+import { Plus, Upload, Filter, Search, IndianRupee, Receipt, Wallet, ArrowUpRight, ArrowDownLeft, CheckCircle2, XCircle, Trash2, TrendingUp, Coins, BarChart3, Calendar, Tag, AlertCircle, CheckCircle, Info, Loader2, Repeat, Clock, ArrowRightLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { format } from 'date-fns';
+import { format, addDays, addWeeks, addMonths, addYears, isBefore, startOfDay } from 'date-fns';
 import { useDropzone } from 'react-dropzone';
-import { Transaction, TransactionType, PaymentMethod, Asset, AssetPrice, ConfidenceLevel } from './types';
+import { Transaction, TransactionType, PaymentMethod, Asset, AssetPrice, ConfidenceLevel, RecurringTransaction, RecurringFrequency, Budget } from './types';
 import { analyzeUPIScreenshot, fetchAssetPrices } from './services/geminiService';
 import { cn } from './lib/utils';
 
 const CATEGORIES = ['Food', 'Transport', 'Shopping', 'Rent', 'Salary', 'Investment', 'Entertainment', 'Health', 'Other'];
+const FREQUENCIES: RecurringFrequency[] = ['daily', 'weekly', 'monthly', 'yearly'];
 
 interface Toast {
   id: string;
@@ -33,6 +34,16 @@ export default function App() {
     ];
   });
 
+  const [recurringTransactions, setRecurringTransactions] = useState<RecurringTransaction[]>(() => {
+    const saved = localStorage.getItem('recurringTransactions');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [budgets, setBudgets] = useState<Budget[]>(() => {
+    const saved = localStorage.getItem('budgets');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [assetPrices, setAssetPrices] = useState<AssetPrice>({
     gold: 7500,
     silver: 95,
@@ -41,6 +52,8 @@ export default function App() {
   
   const [isAddingManual, setIsAddingManual] = useState(false);
   const [isManagingAssets, setIsManagingAssets] = useState(false);
+  const [isManagingRecurring, setIsManagingRecurring] = useState(false);
+  const [isManagingBudgets, setIsManagingBudgets] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [pendingTransactions, setPendingTransactions] = useState<Transaction[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -77,6 +90,77 @@ export default function App() {
     localStorage.setItem('assets', JSON.stringify(assets));
   }, [assets]);
 
+  useEffect(() => {
+    localStorage.setItem('recurringTransactions', JSON.stringify(recurringTransactions));
+  }, [recurringTransactions]);
+
+  useEffect(() => {
+    localStorage.setItem('budgets', JSON.stringify(budgets));
+  }, [budgets]);
+
+  // Process recurring transactions
+  useEffect(() => {
+    const processRecurring = () => {
+      const today = startOfDay(new Date());
+      const newTransactions: Transaction[] = [];
+      const updatedRecurring = recurringTransactions.map(rt => {
+        if (!rt.isActive) return rt;
+
+        let nextDate = rt.lastProcessedDate 
+          ? new Date(rt.lastProcessedDate) 
+          : new Date(rt.startDate);
+        
+        // If it's the first time, check if startDate is today or in the past
+        if (!rt.lastProcessedDate) {
+          nextDate = startOfDay(nextDate);
+        } else {
+          // Calculate next occurrence
+          if (rt.frequency === 'daily') nextDate = addDays(nextDate, 1);
+          else if (rt.frequency === 'weekly') nextDate = addWeeks(nextDate, 1);
+          else if (rt.frequency === 'monthly') nextDate = addMonths(nextDate, 1);
+          else if (rt.frequency === 'yearly') nextDate = addYears(nextDate, 1);
+        }
+
+        let currentRt = { ...rt };
+        while (isBefore(nextDate, today) || nextDate.getTime() === today.getTime()) {
+          newTransactions.push({
+            id: crypto.randomUUID(),
+            amount: rt.amount,
+            recipient: rt.recipient,
+            date: nextDate.toISOString(),
+            description: rt.description + " (Recurring)",
+            type: rt.type,
+            method: rt.method,
+            isRefundable: false,
+            isRefunded: false,
+            category: rt.category,
+            isNew: true,
+            recurringId: rt.id
+          });
+
+          currentRt.lastProcessedDate = nextDate.toISOString();
+          
+          if (rt.frequency === 'daily') nextDate = addDays(nextDate, 1);
+          else if (rt.frequency === 'weekly') nextDate = addWeeks(nextDate, 1);
+          else if (rt.frequency === 'monthly') nextDate = addMonths(nextDate, 1);
+          else if (rt.frequency === 'yearly') nextDate = addYears(nextDate, 1);
+        }
+        return currentRt;
+      });
+
+      if (newTransactions.length > 0) {
+        setTransactions(prev => [...newTransactions, ...prev]);
+        setRecurringTransactions(updatedRecurring);
+        addToast(`Processed ${newTransactions.length} recurring transactions`);
+      }
+    };
+
+    processRecurring();
+    // Check every hour
+    const interval = setInterval(processRecurring, 60 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [recurringTransactions, addToast]);
+
   // Fetch asset prices on mount and every 5 minutes
   useEffect(() => {
     const updatePrices = async () => {
@@ -106,6 +190,33 @@ export default function App() {
       .filter(t => t.isRefundable && t.isRefunded)
       .reduce((acc, t) => acc + t.amount, 0);
 
+    const totalReceivable = assets
+      .filter(a => a.type === 'receivable')
+      .reduce((acc, a) => acc + ((a.totalAmount || 0) - (a.paidAmount || 0)), 0);
+
+    const totalPayable = assets
+      .filter(a => a.type === 'payable')
+      .reduce((acc, a) => acc + ((a.totalAmount || 0) - (a.paidAmount || 0)), 0);
+
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    
+    const monthlySpendingByCategory = transactions
+      .filter(t => {
+        const d = new Date(t.date);
+        return t.type === 'expense' && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      })
+      .reduce((acc, t) => {
+        acc[t.category] = (acc[t.category] || 0) + t.amount;
+        return acc;
+      }, {} as Record<string, number>);
+
+    const budgetStats = budgets.map(b => ({
+      ...b,
+      spent: monthlySpendingByCategory[b.category] || 0,
+      percent: Math.min(100, ((monthlySpendingByCategory[b.category] || 0) / b.limit) * 100)
+    }));
+
     const savings = totalIncome - totalExpenses;
 
     const assetValue = assets.reduce((acc, asset) => {
@@ -113,11 +224,13 @@ export default function App() {
       if (asset.type === 'gold') return acc + (asset.quantity * assetPrices.gold);
       if (asset.type === 'silver') return acc + (asset.quantity * assetPrices.silver);
       if (asset.type === 'stock' && asset.symbol) return acc + (asset.quantity * (assetPrices.stocks[asset.symbol] || 0));
+      if (asset.type === 'receivable') return acc + ((asset.totalAmount || 0) - (asset.paidAmount || 0));
+      if (asset.type === 'payable') return acc - ((asset.totalAmount || 0) - (asset.paidAmount || 0));
       return acc;
     }, 0);
 
-    return { totalExpenses, totalIncome, totalRefundable, totalRefunded, savings, assetValue };
-  }, [transactions, assets, assetPrices]);
+    return { totalExpenses, totalIncome, totalRefundable, totalRefunded, totalReceivable, totalPayable, savings, assetValue, budgetStats };
+  }, [transactions, assets, assetPrices, budgets]);
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter(t => {
@@ -247,6 +360,20 @@ export default function App() {
             </div>
             <div className="flex gap-2">
               <button 
+                onClick={() => setIsManagingRecurring(true)}
+                className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-slate-200 transition-colors"
+              >
+                <Repeat size={18} />
+                Recurring
+              </button>
+              <button 
+                onClick={() => setIsManagingBudgets(true)}
+                className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-slate-200 transition-colors"
+              >
+                <Filter size={18} />
+                Budgets
+              </button>
+              <button 
                 onClick={() => setIsManagingAssets(true)}
                 className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-slate-200 transition-colors"
               >
@@ -263,7 +390,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -296,10 +423,10 @@ export default function App() {
               className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"
             >
               <div className="flex items-center gap-2 text-slate-500 mb-1">
-                <Wallet size={16} className="text-indigo-600" />
-                <span className="text-xs font-medium">Net Savings</span>
+                <Clock size={16} className="text-blue-600" />
+                <span className="text-xs font-medium">Receivables</span>
               </div>
-              <p className="text-lg font-bold text-indigo-600">₹{stats.savings.toLocaleString()}</p>
+              <p className="text-lg font-bold text-blue-600">₹{stats.totalReceivable.toLocaleString()}</p>
             </motion.div>
 
             <motion.div 
@@ -309,8 +436,21 @@ export default function App() {
               className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"
             >
               <div className="flex items-center gap-2 text-slate-500 mb-1">
+                <Wallet size={16} className="text-indigo-600" />
+                <span className="text-xs font-medium">Net Savings</span>
+              </div>
+              <p className="text-lg font-bold text-indigo-600">₹{stats.savings.toLocaleString()}</p>
+            </motion.div>
+
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"
+            >
+              <div className="flex items-center gap-2 text-slate-500 mb-1">
                 <Coins size={16} className="text-amber-600" />
-                <span className="text-xs font-medium">Asset Worth</span>
+                <span className="text-xs font-medium">Net Worth</span>
               </div>
               <p className="text-lg font-bold text-amber-600">₹{Math.round(stats.assetValue).toLocaleString()}</p>
             </motion.div>
@@ -355,6 +495,38 @@ export default function App() {
             </p>
           </div>
         </div>
+
+        {/* Budget Progress */}
+        {stats.budgetStats.length > 0 && (
+          <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+            {stats.budgetStats.map(budget => (
+              <div key={budget.category} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="font-bold text-sm text-slate-700">{budget.category}</h3>
+                  <span className={cn(
+                    "text-xs font-bold",
+                    budget.percent >= 100 ? "text-red-600" : budget.percent >= 80 ? "text-amber-600" : "text-indigo-600"
+                  )}>
+                    ₹{budget.spent.toLocaleString()} / ₹{budget.limit.toLocaleString()}
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${budget.percent}%` }}
+                    className={cn(
+                      "h-full transition-all",
+                      budget.percent >= 100 ? "bg-red-500" : budget.percent >= 80 ? "bg-amber-500" : "bg-indigo-500"
+                    )}
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1 font-medium">
+                  {budget.percent >= 100 ? "Budget exceeded!" : `${Math.round(100 - budget.percent)}% remaining`}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Filters */}
         <div className="space-y-4 mb-8">
@@ -464,8 +636,14 @@ export default function App() {
                       <span className="flex items-center gap-1"><Calendar size={12} />{format(new Date(tx.date), 'MMM dd, yyyy')}</span>
                       <span>•</span>
                       <span className="flex items-center gap-1"><Tag size={12} />{tx.category}</span>
+                      {tx.recurringId && (
+                        <>
+                          <span>•</span>
+                          <span className="flex items-center gap-1 text-indigo-600"><Repeat size={10} />Recurring</span>
+                        </>
+                      )}
                       <span>•</span>
-                      <span className="uppercase">{tx.method.replace('_', ' ')}</span>
+                      <span className="uppercase">{(tx.method || 'cash').replace('_', ' ')}</span>
                       {tx.isRefundable && (
                         <>
                           <span>•</span>
@@ -682,6 +860,9 @@ export default function App() {
                           type: formData.get('type') as any,
                           quantity: Number(formData.get('quantity')),
                           symbol: formData.get('symbol') as string || undefined,
+                          totalAmount: formData.get('totalAmount') ? Number(formData.get('totalAmount')) : undefined,
+                          paidAmount: formData.get('paidAmount') ? Number(formData.get('paidAmount')) : undefined,
+                          dueDate: formData.get('dueDate') as string || undefined,
                         });
                         e.currentTarget.reset();
                       }}
@@ -693,11 +874,18 @@ export default function App() {
                         <option value="gold">Gold (Grams)</option>
                         <option value="silver">Silver (Grams)</option>
                         <option value="stock">Stock (Units)</option>
+                        <option value="receivable">Receivable (Money Owed to You)</option>
+                        <option value="payable">Payable (Money You Owe)</option>
                       </select>
                       <div className="grid grid-cols-2 gap-2">
-                        <input required name="quantity" type="number" step="0.001" placeholder="Quantity" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                        <input required name="quantity" type="number" step="0.001" placeholder="Quantity/Amount" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                         <input name="symbol" placeholder="Symbol (for stocks)" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                       </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input name="totalAmount" type="number" placeholder="Total Amount (for Rec/Pay)" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                        <input name="paidAmount" type="number" placeholder="Paid Amount (for Rec/Pay)" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                      </div>
+                      <input name="dueDate" type="date" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                       <button type="submit" className="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-bold">Add Asset</button>
                     </form>
                   </div>
@@ -707,27 +895,50 @@ export default function App() {
                     <h3 className="font-bold flex items-center gap-2"><TrendingUp size={18} /> Your Holdings</h3>
                     {assets.map(asset => (
                       <div key={asset.id} className="bg-white p-3 rounded-lg border border-slate-200 flex justify-between items-center">
-                        <div>
-                          <p className="font-bold text-sm">{asset.name}</p>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-bold text-sm">{asset.name}</p>
+                            <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 rounded uppercase font-bold text-slate-500">{asset.type}</span>
+                          </div>
                           <p className="text-xs text-slate-500">
-                            {asset.quantity} {asset.type === 'liquid' ? 'INR' : asset.type === 'stock' ? 'Units' : 'Grams'}
+                            {asset.type === 'receivable' || asset.type === 'payable' ? (
+                              `₹${asset.paidAmount || 0} / ₹${asset.totalAmount || 0} settled`
+                            ) : (
+                              `${asset.quantity} ${asset.type === 'liquid' ? 'INR' : asset.type === 'stock' ? 'Units' : 'Grams'}`
+                            )}
                           </p>
+                          {(asset.type === 'receivable' || asset.type === 'payable') && asset.dueDate && (
+                            <p className="text-[10px] text-indigo-600 font-bold mt-1">Due: {format(new Date(asset.dueDate), 'MMM dd, yyyy')}</p>
+                          )}
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-sm text-indigo-600">
+                          <p className={cn(
+                            "font-bold text-sm",
+                            asset.type === 'payable' ? "text-red-600" : "text-indigo-600"
+                          )}>
                             ₹{Math.round(
                               asset.type === 'liquid' ? asset.quantity :
                               asset.type === 'gold' ? asset.quantity * assetPrices.gold :
                               asset.type === 'silver' ? asset.quantity * assetPrices.silver :
-                              asset.type === 'stock' && asset.symbol ? asset.quantity * (assetPrices.stocks[asset.symbol] || 0) : 0
+                              asset.type === 'stock' && asset.symbol ? asset.quantity * (assetPrices.stocks[asset.symbol] || 0) :
+                              asset.type === 'receivable' || asset.type === 'payable' ? (asset.totalAmount || 0) - (asset.paidAmount || 0) : 0
                             ).toLocaleString()}
                           </p>
-                          <input 
-                            type="number" 
-                            defaultValue={asset.quantity}
-                            onBlur={(e) => handleUpdateAssetQuantity(asset.id, Number(e.target.value))}
-                            className="w-20 text-right text-xs border-b border-slate-200 outline-none focus:border-indigo-500"
-                          />
+                          <div className="flex items-center gap-2 justify-end mt-1">
+                            <input 
+                              type="number" 
+                              defaultValue={asset.quantity}
+                              onBlur={(e) => handleUpdateAssetQuantity(asset.id, Number(e.target.value))}
+                              className="w-16 text-right text-xs border-b border-slate-200 outline-none focus:border-indigo-500"
+                              title="Update Quantity/Current Amount"
+                            />
+                            <button 
+                              onClick={() => setAssets(prev => prev.filter(a => a.id !== asset.id))}
+                              className="text-red-400 hover:text-red-600"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -747,7 +958,138 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Pending Transactions Preview */}
+      {/* Recurring Transaction Modal */}
+      <AnimatePresence>
+        {isManagingRecurring && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsManagingRecurring(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <div>
+                  <h2 className="text-xl font-bold">Recurring Transactions</h2>
+                  <p className="text-xs text-slate-500">Automate your regular income and expenses</p>
+                </div>
+                <button onClick={() => setIsManagingRecurring(false)} className="text-slate-400 hover:text-slate-600">
+                  <XCircle size={24} />
+                </button>
+              </div>
+              
+              <div className="p-6 overflow-y-auto flex-1 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Add Recurring Form */}
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <h3 className="font-bold mb-4 flex items-center gap-2 text-indigo-600"><Plus size={18} /> New Template</h3>
+                    <form 
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const formData = new FormData(e.currentTarget);
+                        const newRt: RecurringTransaction = {
+                          id: crypto.randomUUID(),
+                          amount: Number(formData.get('amount')),
+                          recipient: formData.get('recipient') as string,
+                          description: formData.get('description') as string,
+                          type: formData.get('type') as TransactionType,
+                          method: formData.get('method') as PaymentMethod,
+                          category: formData.get('category') as string,
+                          frequency: formData.get('frequency') as RecurringFrequency,
+                          startDate: new Date(formData.get('startDate') as string).toISOString(),
+                          isActive: true,
+                        };
+                        setRecurringTransactions(prev => [...prev, newRt]);
+                        e.currentTarget.reset();
+                        addToast('Recurring transaction set up');
+                      }}
+                      className="space-y-3"
+                    >
+                      <div className="flex p-1 bg-white rounded-lg border border-slate-200">
+                        <label className="flex-1 cursor-pointer">
+                          <input type="radio" name="type" value="expense" defaultChecked className="sr-only peer" />
+                          <div className="text-center py-1.5 rounded-md peer-checked:bg-red-50 peer-checked:text-red-600 text-[10px] font-bold uppercase transition-all">Expense</div>
+                        </label>
+                        <label className="flex-1 cursor-pointer">
+                          <input type="radio" name="type" value="income" className="sr-only peer" />
+                          <div className="text-center py-1.5 rounded-md peer-checked:bg-green-50 peer-checked:text-green-600 text-[10px] font-bold uppercase transition-all">Income</div>
+                        </label>
+                      </div>
+                      <input required name="recipient" placeholder="Recipient / Source" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                      <div className="grid grid-cols-2 gap-2">
+                        <input required name="amount" type="number" placeholder="Amount" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                        <select name="frequency" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white">
+                          {FREQUENCIES.map(f => <option key={f} value={f}>{f.charAt(0).toUpperCase() + f.slice(1)}</option>)}
+                        </select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <select name="category" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white">
+                          {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                        </select>
+                        <input required name="startDate" type="date" defaultValue={format(new Date(), 'yyyy-MM-dd')} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                      </div>
+                      <input name="description" placeholder="Description" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                      <button type="submit" className="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-bold shadow-md shadow-indigo-100">Start Recurring</button>
+                    </form>
+                  </div>
+
+                  {/* Recurring List */}
+                  <div className="space-y-3">
+                    <h3 className="font-bold flex items-center gap-2 text-slate-700"><Clock size={18} /> Active Schedules</h3>
+                    {recurringTransactions.map(rt => (
+                      <div key={rt.id} className="bg-white p-3 rounded-lg border border-slate-200 flex justify-between items-center group">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-bold text-sm">{rt.recipient}</p>
+                            <span className={cn(
+                              "text-[9px] px-1.5 py-0.5 rounded font-bold uppercase",
+                              rt.type === 'expense' ? "bg-red-50 text-red-600" : "bg-green-50 text-green-600"
+                            )}>{rt.frequency}</span>
+                          </div>
+                          <p className="text-xs text-slate-500">₹{rt.amount.toLocaleString()} • {rt.category}</p>
+                          {rt.lastProcessedDate && (
+                            <p className="text-[9px] text-slate-400 mt-1">Last: {format(new Date(rt.lastProcessedDate), 'MMM dd')}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => setRecurringTransactions(prev => prev.map(item => item.id === rt.id ? { ...item, isActive: !item.isActive } : item))}
+                            className={cn(
+                              "p-1.5 rounded-lg transition-colors",
+                              rt.isActive ? "text-green-600 bg-green-50" : "text-slate-400 bg-slate-50"
+                            )}
+                          >
+                            <CheckCircle2 size={16} />
+                          </button>
+                          <button 
+                            onClick={() => setRecurringTransactions(prev => prev.filter(item => item.id !== rt.id))}
+                            className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    {recurringTransactions.length === 0 && (
+                      <div className="text-center py-10 border-2 border-dashed border-slate-100 rounded-xl">
+                        <Repeat className="mx-auto text-slate-200 mb-2" size={32} />
+                        <p className="text-xs text-slate-400">No recurring transactions set up</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
       <AnimatePresence>
         {pendingTransactions.length > 0 && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -806,6 +1148,18 @@ export default function App() {
                         />
                       </div>
                       <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase">Description</label>
+                        <input 
+                          value={tx.description}
+                          onChange={(e) => {
+                            const newTxs = [...pendingTransactions];
+                            newTxs[idx].description = e.target.value;
+                            setPendingTransactions(newTxs);
+                          }}
+                          className="w-full bg-transparent border-b border-slate-200 focus:border-indigo-500 outline-none text-sm py-1"
+                        />
+                      </div>
+                      <div>
                         <label className="text-[10px] font-bold text-slate-400 uppercase">Date</label>
                         <input 
                           type="date"
@@ -830,7 +1184,22 @@ export default function App() {
                           className="w-full bg-transparent border-b border-slate-200 focus:border-indigo-500 outline-none text-sm py-1"
                         >
                           {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                          {!CATEGORIES.includes(tx.category) && <option value={tx.category}>{tx.category}</option>}
+                          <option value="CUSTOM">+ Custom Category</option>
                         </select>
+                        {tx.category === 'CUSTOM' && (
+                          <input 
+                            placeholder="Type custom category..."
+                            onBlur={(e) => {
+                              if (e.target.value) {
+                                const newTxs = [...pendingTransactions];
+                                newTxs[idx].category = e.target.value;
+                                setPendingTransactions(newTxs);
+                              }
+                            }}
+                            className="w-full mt-1 bg-slate-50 px-2 py-1 rounded text-xs border border-slate-200 outline-none"
+                          />
+                        )}
                       </div>
                     </div>
                     <div className="flex flex-col justify-between items-end">
@@ -866,6 +1235,100 @@ export default function App() {
                 >
                   Confirm & Add {pendingTransactions.length} Transactions
                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Budget Management Modal */}
+      <AnimatePresence>
+        {isManagingBudgets && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsManagingBudgets(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white w-full max-w-md rounded-2xl shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900">Monthly Budgets</h2>
+                  <p className="text-xs text-slate-500">Set spending limits for each category</p>
+                </div>
+                <button onClick={() => setIsManagingBudgets(false)} className="text-slate-400 hover:text-slate-600">
+                  <XCircle size={24} />
+                </button>
+              </div>
+              
+              <div className="p-6 overflow-y-auto flex-1 space-y-6">
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.currentTarget);
+                    const category = formData.get('category') as string;
+                    const limit = Number(formData.get('limit'));
+                    
+                    setBudgets(prev => {
+                      const existing = prev.find(b => b.category === category);
+                      if (existing) {
+                        return prev.map(b => b.category === category ? { ...b, limit } : b);
+                      }
+                      return [...prev, { category, limit }];
+                    });
+                    e.currentTarget.reset();
+                    addToast(`Budget set for ${category}`);
+                  }}
+                  className="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200"
+                >
+                  <h3 className="font-bold text-sm flex items-center gap-2"><Plus size={16} /> Set New Budget</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Category</label>
+                      <select name="category" required className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-indigo-500">
+                        {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Limit (₹)</label>
+                      <input name="limit" type="number" required placeholder="0.00" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500" />
+                    </div>
+                  </div>
+                  <button type="submit" className="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-bold shadow-md shadow-indigo-100 hover:bg-indigo-700 transition-colors">
+                    Set Budget
+                  </button>
+                </form>
+
+                <div className="space-y-3">
+                  <h3 className="font-bold text-sm text-slate-700">Current Budgets</h3>
+                  {budgets.map(budget => (
+                    <div key={budget.category} className="bg-white p-3 rounded-lg border border-slate-200 flex justify-between items-center group">
+                      <div>
+                        <p className="font-bold text-sm text-slate-900">{budget.category}</p>
+                        <p className="text-xs text-slate-500">Limit: ₹{budget.limit.toLocaleString()}</p>
+                      </div>
+                      <button 
+                        onClick={() => setBudgets(prev => prev.filter(b => b.category !== budget.category))}
+                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+                  {budgets.length === 0 && (
+                    <div className="text-center py-10 border-2 border-dashed border-slate-100 rounded-xl">
+                      <Filter className="mx-auto text-slate-200 mb-2" size={32} />
+                      <p className="text-xs text-slate-400">No budgets set yet</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </motion.div>
           </div>
