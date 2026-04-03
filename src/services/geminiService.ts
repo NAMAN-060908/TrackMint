@@ -1,18 +1,16 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Transaction, AssetPrice } from "../types";
 
-// Only initialize if API key is present
-const ai = process.env.GEMINI_API_KEY ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }) : null;
+// Hardcoded API key provided by the user
+const GEMINI_API_KEY = "AIzaSyAnJzsOcQ5BoIwDXCSJdmTBT2rpfOMUM-Y";
+const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
 export async function fetchAssetPrices(stockSymbols: string[]): Promise<AssetPrice> {
-  // Fallback/Mock data if AI is not available
   const fallback = {
     gold: 7500,
     silver: 95,
     stocks: stockSymbols.reduce((acc, sym) => ({ ...acc, [sym]: 1000 }), {})
   };
-
-  if (!ai) return fallback;
 
   const model = "gemini-3-flash-preview";
   const prompt = `Provide the current market price in INR for:
@@ -54,31 +52,6 @@ export async function fetchAssetPrices(stockSymbols: string[]): Promise<AssetPri
 }
 
 export async function analyzeUPIScreenshot(base64Image: string): Promise<Partial<Transaction>[]> {
-  if (!ai) {
-    // Return mock transaction data if no API key is provided
-    console.log("No Gemini API key found. Returning mock data.");
-    return [
-      {
-        amount: 450,
-        recipient: "Swiggy (Mock)",
-        date: new Date().toISOString(),
-        description: "Mock data - Add GEMINI_API_KEY to enable real scanning",
-        type: 'expense',
-        method: 'upi',
-        confidence: 'high'
-      },
-      {
-        amount: 1200,
-        recipient: "Amazon (Mock)",
-        date: new Date().toISOString(),
-        description: "Mock data - Add GEMINI_API_KEY to enable real scanning",
-        type: 'expense',
-        method: 'upi',
-        confidence: 'medium'
-      }
-    ];
-  }
-
   const model = "gemini-3-flash-preview";
   const prompt = `Analyze this UPI transaction history screenshot. Extract a list of transactions. 
   For each transaction, find:
