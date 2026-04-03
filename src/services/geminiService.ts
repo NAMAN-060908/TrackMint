@@ -1,9 +1,12 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Transaction, AssetPrice } from "../types";
 
-// Hardcoded API key provided by the user
-const GEMINI_API_KEY = "AIzaSyAnJzsOcQ5BoIwDXCSJdmTBT2rpfOMUM-Y";
-const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+// Gemini API key is automatically injected by the platform at runtime.
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+if (!GEMINI_API_KEY) {
+  console.error("GEMINI_API_KEY is not defined in the environment. Please check your AI Studio secrets.");
+}
+const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY || "" });
 
 export async function fetchAssetPrices(stockSymbols: string[]): Promise<AssetPrice> {
   const fallback = {
