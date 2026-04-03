@@ -69,9 +69,16 @@ export default function App() {
   const [filterCategory, setFilterCategory] = useState('All');
   const [searchRecipient, setSearchRecipient] = useState('');
 
+  const generateId = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  };
+
   // Toast management
   const addToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
-    const id = crypto.randomUUID();
+    const id = generateId();
     setToasts(prev => [...prev, { id, message, type }]);
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
@@ -304,7 +311,7 @@ export default function App() {
   const handleAddTransaction = (newTx: Omit<Transaction, 'id'>) => {
     const transaction: Transaction = {
       ...newTx,
-      id: crypto.randomUUID(),
+      id: generateId(),
       isNew: true,
     };
     setTransactions(prev => [transaction, ...prev]);
@@ -334,7 +341,7 @@ export default function App() {
   };
 
   const handleAddAsset = (newAsset: Omit<Asset, 'id'>) => {
-    setAssets(prev => [...prev, { ...newAsset, id: crypto.randomUUID() }]);
+    setAssets(prev => [...prev, { ...newAsset, id: generateId() }]);
   };
 
   const handleUpdateAssetQuantity = (id: string, quantity: number) => {
@@ -347,17 +354,50 @@ export default function App() {
     setIsUploading(true);
     try {
       const file = acceptedFiles[0];
-      const base64 = await new Promise<string>((resolve, reject) => {
+      
+      // Compress image before sending to Gemini
+      const compressedBase64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            
+            // Max dimensions for Gemini processing (1600px is usually enough for OCR)
+            const MAX_DIM = 1600;
+            if (width > height) {
+              if (width > MAX_DIM) {
+                height *= MAX_DIM / width;
+                width = MAX_DIM;
+              }
+            } else {
+              if (height > MAX_DIM) {
+                width *= MAX_DIM / height;
+                height = MAX_DIM;
+              }
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(img, 0, 0, width, height);
+            
+            // Compress to JPEG with 0.7 quality
+            resolve(canvas.toDataURL('image/jpeg', 0.7));
+          };
+          img.onerror = reject;
+          img.src = e.target?.result as string;
+        };
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
 
-      const extracted = await analyzeUPIScreenshot(base64);
+      const extracted = await analyzeUPIScreenshot(compressedBase64);
       
       const newTxs = extracted.map(tx => ({
-        id: crypto.randomUUID(),
+        id: generateId(),
         amount: tx.amount || 0,
         recipient: tx.recipient || 'Unknown',
         date: tx.date || new Date().toISOString(),
@@ -372,9 +412,10 @@ export default function App() {
       
       setPendingTransactions(newTxs);
       addToast(`${newTxs.length} transactions detected`, 'info');
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to process screenshot", error);
-      addToast("Failed to process screenshot", "error");
+      const errorMessage = error?.message || "Unknown error";
+      addToast(`Failed to process screenshot: ${errorMessage}`, "error");
     } finally {
       setIsUploading(false);
     }
@@ -1123,7 +1164,7 @@ export default function App() {
                         e.preventDefault();
                         const formData = new FormData(e.currentTarget);
                         const newRt: RecurringTransaction = {
-                          id: crypto.randomUUID(),
+                          id: generateId(),
                           amount: Number(formData.get('amount')),
                           recipient: formData.get('recipient') as string,
                           description: formData.get('description') as string,
@@ -1509,7 +1550,7 @@ export default function App() {
                     e.preventDefault();
                     const formData = new FormData(e.currentTarget);
                     const newGoal: FinancialGoal = {
-                      id: crypto.randomUUID(),
+                      id: generateId(),
                       name: formData.get('name') as string,
                       targetAmount: Number(formData.get('targetAmount')),
                       currentAmount: Number(formData.get('currentAmount')),
