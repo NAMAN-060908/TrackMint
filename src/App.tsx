@@ -398,7 +398,7 @@ export default function App() {
       {/* Header & Stats */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-30 px-4 py-6">
         <div className="max-w-4xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
             <div className="flex items-center gap-3">
               <div className="bg-indigo-600 p-2.5 rounded-xl shadow-lg shadow-indigo-200">
                 <IndianRupee className="text-white" size={24} />
@@ -410,115 +410,128 @@ export default function App() {
                 <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">Wealth Tracker</p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 w-full md:w-auto">
+              <button 
+                onClick={() => {
+                  if (confirm("Are you sure you want to clear all data? This cannot be undone.")) {
+                    localStorage.clear();
+                    window.location.reload();
+                  }
+                }}
+                className="flex-1 md:flex-none bg-red-50 text-red-600 px-3 py-2 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-red-100 transition-colors text-xs"
+                title="Clear All Data"
+              >
+                <Trash2 size={14} />
+                Reset
+              </button>
               <button 
                 onClick={() => setIsManagingRecurring(true)}
-                className="bg-slate-100 text-slate-700 px-3 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-slate-200 transition-colors text-sm"
+                className="flex-1 md:flex-none bg-slate-100 text-slate-700 px-3 py-2 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-slate-200 transition-colors text-xs"
               >
-                <Repeat size={16} />
+                <Repeat size={14} />
                 Recurring
               </button>
               <button 
                 onClick={() => setIsManagingBudgets(true)}
-                className="bg-slate-100 text-slate-700 px-3 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-slate-200 transition-colors text-sm"
+                className="flex-1 md:flex-none bg-slate-100 text-slate-700 px-3 py-2 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-slate-200 transition-colors text-xs"
               >
-                <Filter size={16} />
+                <Filter size={14} />
                 Budgets
               </button>
               <button 
                 onClick={() => setIsManagingGoals(true)}
-                className="bg-slate-100 text-slate-700 px-3 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-slate-200 transition-colors text-sm"
+                className="flex-1 md:flex-none bg-slate-100 text-slate-700 px-3 py-2 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-slate-200 transition-colors text-xs"
               >
-                <TrendingUp size={16} />
+                <TrendingUp size={14} />
                 Goals
               </button>
               <button 
                 onClick={() => setIsViewingInsights(true)}
-                className="bg-slate-100 text-slate-700 px-3 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-slate-200 transition-colors text-sm"
+                className="flex-1 md:flex-none bg-slate-100 text-slate-700 px-3 py-2 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-slate-200 transition-colors text-xs"
               >
-                <BarChart3 size={16} />
+                <BarChart3 size={14} />
                 Insights
               </button>
               <button 
                 onClick={() => setIsManagingAssets(true)}
-                className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-slate-200 transition-colors"
+                className="flex-1 md:flex-none bg-slate-100 text-slate-700 px-3 py-2 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-slate-200 transition-colors text-xs"
               >
-                <BarChart3 size={18} />
+                <Wallet size={14} />
                 Assets
               </button>
               <button 
                 onClick={() => setIsAddingManual(true)}
-                className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-indigo-700 transition-colors shadow-sm"
+                className="flex-[2] md:flex-none bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-indigo-700 transition-colors shadow-sm text-xs"
               >
-                <Plus size={18} />
+                <Plus size={16} />
                 Add
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"
+              className="bg-white p-3 md:p-4 rounded-xl border border-slate-200 shadow-sm"
             >
               <div className="flex items-center gap-2 text-slate-500 mb-1">
-                <TrendingUp size={16} className="text-green-600" />
-                <span className="text-xs font-medium">Total Income</span>
+                <TrendingUp size={14} className="text-green-600" />
+                <span className="text-[10px] md:text-xs font-medium">Income</span>
               </div>
-              <p className="text-lg font-bold text-green-600">₹{stats.totalIncome.toLocaleString()}</p>
+              <p className="text-base md:text-lg font-bold text-green-600">₹{stats.totalIncome.toLocaleString()}</p>
             </motion.div>
 
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"
+              className="bg-white p-3 md:p-4 rounded-xl border border-slate-200 shadow-sm"
             >
               <div className="flex items-center gap-2 text-slate-500 mb-1">
-                <ArrowUpRight size={16} className="text-red-600" />
-                <span className="text-xs font-medium">Total Expenses</span>
+                <ArrowUpRight size={14} className="text-red-600" />
+                <span className="text-[10px] md:text-xs font-medium">Expenses</span>
               </div>
-              <p className="text-lg font-bold text-red-600">₹{stats.totalExpenses.toLocaleString()}</p>
+              <p className="text-base md:text-lg font-bold text-red-600">₹{stats.totalExpenses.toLocaleString()}</p>
             </motion.div>
 
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"
+              className="bg-white p-3 md:p-4 rounded-xl border border-slate-200 shadow-sm"
             >
               <div className="flex items-center gap-2 text-slate-500 mb-1">
-                <Clock size={16} className="text-blue-600" />
-                <span className="text-xs font-medium">Receivables</span>
+                <Clock size={14} className="text-blue-600" />
+                <span className="text-[10px] md:text-xs font-medium">Receivable</span>
               </div>
-              <p className="text-lg font-bold text-blue-600">₹{stats.totalReceivable.toLocaleString()}</p>
+              <p className="text-base md:text-lg font-bold text-blue-600">₹{stats.totalReceivable.toLocaleString()}</p>
             </motion.div>
 
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"
+              className="bg-white p-3 md:p-4 rounded-xl border border-slate-200 shadow-sm"
             >
               <div className="flex items-center gap-2 text-slate-500 mb-1">
-                <Wallet size={16} className="text-indigo-600" />
-                <span className="text-xs font-medium">Net Savings</span>
+                <Wallet size={14} className="text-indigo-600" />
+                <span className="text-[10px] md:text-xs font-medium">Savings</span>
               </div>
-              <p className="text-lg font-bold text-indigo-600">₹{stats.savings.toLocaleString()}</p>
+              <p className="text-base md:text-lg font-bold text-indigo-600">₹{stats.savings.toLocaleString()}</p>
             </motion.div>
 
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"
+              className="bg-white p-3 md:p-4 rounded-xl border border-slate-200 shadow-sm col-span-2 lg:col-span-1"
             >
               <div className="flex items-center gap-2 text-slate-500 mb-1">
-                <Coins size={16} className="text-amber-600" />
-                <span className="text-xs font-medium">Net Worth</span>
+                <Coins size={14} className="text-amber-600" />
+                <span className="text-[10px] md:text-xs font-medium">Net Worth</span>
               </div>
-              <p className="text-lg font-bold text-amber-600">₹{Math.round(stats.assetValue).toLocaleString()}</p>
+              <p className="text-base md:text-lg font-bold text-amber-600">₹{Math.round(stats.assetValue).toLocaleString()}</p>
             </motion.div>
           </div>
         </div>
@@ -720,16 +733,16 @@ export default function App() {
                 {tx.isNew && (
                   <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500" />
                 )}
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 w-full sm:w-auto">
                   <div className={cn(
                     "p-3 rounded-lg",
                     tx.type === 'expense' ? "bg-red-50 text-red-600" : "bg-green-50 text-green-600"
                   )}>
                     {tx.type === 'expense' ? <ArrowUpRight size={20} /> : <ArrowDownLeft size={20} />}
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-slate-900">{tx.recipient}</h3>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-bold text-slate-900 truncate">{tx.recipient}</h3>
                       {tx.confidence && (
                         <span className={cn(
                           "text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase",
@@ -737,7 +750,7 @@ export default function App() {
                           tx.confidence === 'medium' ? "bg-amber-100 text-amber-700" :
                           "bg-red-100 text-red-700"
                         )}>
-                          {tx.confidence} Confidence
+                          {tx.confidence}
                         </span>
                       )}
                       {tx.isNew && (
@@ -746,21 +759,21 @@ export default function App() {
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] md:text-xs text-slate-500 mt-0.5">
                       <span className="flex items-center gap-1"><Calendar size={12} />{format(new Date(tx.date), 'MMM dd, yyyy')}</span>
-                      <span>•</span>
+                      <span className="hidden sm:inline">•</span>
                       <span className="flex items-center gap-1"><Tag size={12} />{tx.category}</span>
                       {tx.recurringId && (
                         <>
-                          <span>•</span>
+                          <span className="hidden sm:inline">•</span>
                           <span className="flex items-center gap-1 text-indigo-600"><Repeat size={10} />Recurring</span>
                         </>
                       )}
-                      <span>•</span>
+                      <span className="hidden sm:inline">•</span>
                       <span className="uppercase">{(tx.method || 'cash').replace('_', ' ')}</span>
                       {tx.isRefundable && (
                         <>
-                          <span>•</span>
+                          <span className="hidden sm:inline">•</span>
                           <span className={cn(
                             "px-1.5 py-0.5 rounded font-semibold",
                             tx.isRefunded ? "bg-green-100 text-green-700" : "bg-indigo-100 text-indigo-700"
@@ -773,18 +786,18 @@ export default function App() {
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
+                <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                  <div className="text-left sm:text-right">
                     <p className={cn(
-                      "text-lg font-bold",
+                      "text-base sm:text-lg font-bold",
                       tx.type === 'expense' ? "text-slate-900" : "text-green-600"
                     )}>
                       {tx.type === 'expense' ? '-' : '+'}₹{tx.amount.toLocaleString()}
                     </p>
-                    <p className="text-xs text-slate-400 truncate max-w-[150px]">{tx.description}</p>
+                    <p className="text-[10px] sm:text-xs text-slate-400 truncate max-w-[150px]">{tx.description}</p>
                   </div>
                   
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                     <button 
                       onClick={() => toggleRefundable(tx.id)}
                       className={cn(
@@ -844,10 +857,10 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-white w-full max-w-md rounded-2xl shadow-2xl relative z-10 overflow-hidden"
+              className="bg-white w-full max-w-md max-h-[95vh] overflow-y-auto rounded-2xl shadow-2xl relative z-10 m-2"
             >
-              <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                <h2 className="text-xl font-bold">Add Transaction</h2>
+              <div className="p-4 md:p-6 border-b border-slate-100 flex justify-between items-center">
+                <h2 className="text-lg md:text-xl font-bold">Add Transaction</h2>
                 <button onClick={() => setIsAddingManual(false)} className="text-slate-400 hover:text-slate-600">
                   <XCircle size={24} />
                 </button>
@@ -868,7 +881,7 @@ export default function App() {
                     category: formData.get('category') as string,
                   });
                 }}
-                className="p-6 space-y-4"
+                className="p-4 md:p-6 space-y-4"
               >
                 <div className="flex p-1 bg-slate-100 rounded-lg">
                   <label className="flex-1 cursor-pointer">
@@ -951,17 +964,17 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
+              className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[95vh] m-2"
             >
-              <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                <h2 className="text-xl font-bold">Asset Management</h2>
+              <div className="p-4 md:p-6 border-b border-slate-100 flex justify-between items-center">
+                <h2 className="text-lg md:text-xl font-bold">Asset Management</h2>
                 <button onClick={() => setIsManagingAssets(false)} className="text-slate-400 hover:text-slate-600">
                   <XCircle size={24} />
                 </button>
               </div>
               
-              <div className="p-6 overflow-y-auto flex-1 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="p-4 md:p-6 overflow-y-auto flex-1 space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Add Asset Form */}
                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
                     <h3 className="font-bold mb-4 flex items-center gap-2"><Plus size={18} /> Add New Asset</h3>
@@ -1087,20 +1100,20 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
+              className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[95vh] m-2"
             >
-              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <div className="p-4 md:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                 <div>
-                  <h2 className="text-xl font-bold">Recurring Transactions</h2>
-                  <p className="text-xs text-slate-500">Automate your regular income and expenses</p>
+                  <h2 className="text-lg md:text-xl font-bold">Recurring Transactions</h2>
+                  <p className="text-[10px] md:text-xs text-slate-500">Automate your regular income and expenses</p>
                 </div>
                 <button onClick={() => setIsManagingRecurring(false)} className="text-slate-400 hover:text-slate-600">
                   <XCircle size={24} />
                 </button>
               </div>
               
-              <div className="p-6 overflow-y-auto flex-1 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="p-4 md:p-6 overflow-y-auto flex-1 space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Add Recurring Form */}
                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
                     <h3 className="font-bold mb-4 flex items-center gap-2 text-indigo-600"><Plus size={18} /> New Template</h3>
@@ -1217,25 +1230,25 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
+              className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[95vh] m-2"
             >
-              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-indigo-50">
+              <div className="p-4 md:p-6 border-b border-slate-100 flex justify-between items-center bg-indigo-50">
                 <div>
-                  <h2 className="text-xl font-bold text-indigo-900">✅ {pendingTransactions.length} Transactions Detected</h2>
-                  <p className="text-sm text-indigo-700">Review and confirm the extracted data</p>
+                  <h2 className="text-lg md:text-xl font-bold text-indigo-900">✅ {pendingTransactions.length} Detected</h2>
+                  <p className="text-[10px] md:text-sm text-indigo-700">Review and confirm extraction</p>
                 </div>
                 <button onClick={() => setPendingTransactions([])} className="text-slate-400 hover:text-slate-600">
                   <XCircle size={24} />
                 </button>
               </div>
               
-              <div className="p-6 overflow-y-auto flex-1 space-y-4">
+              <div className="p-4 md:p-6 overflow-y-auto flex-1 space-y-4">
                 {pendingTransactions.map((tx, idx) => (
                   <div key={tx.id} className={cn(
-                    "p-4 rounded-xl border flex flex-col md:flex-row gap-4",
+                    "p-3 md:p-4 rounded-xl border flex flex-col gap-4",
                     tx.confidence === 'low' ? "border-red-200 bg-red-50/30" : "border-slate-200"
                   )}>
-                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="text-[10px] font-bold text-slate-400 uppercase">Recipient</label>
                         <input 
@@ -1245,7 +1258,7 @@ export default function App() {
                             newTxs[idx].recipient = e.target.value;
                             setPendingTransactions(newTxs);
                           }}
-                          className="w-full bg-transparent border-b border-slate-200 focus:border-indigo-500 outline-none font-bold py-1"
+                          className="w-full bg-transparent border-b border-slate-200 focus:border-indigo-500 outline-none font-bold py-1 text-sm"
                         />
                       </div>
                       <div>
@@ -1258,7 +1271,7 @@ export default function App() {
                             newTxs[idx].amount = Number(e.target.value);
                             setPendingTransactions(newTxs);
                           }}
-                          className="w-full bg-transparent border-b border-slate-200 focus:border-indigo-500 outline-none font-bold py-1"
+                          className="w-full bg-transparent border-b border-slate-200 focus:border-indigo-500 outline-none font-bold py-1 text-sm"
                         />
                       </div>
                       <div>
@@ -1270,7 +1283,7 @@ export default function App() {
                             newTxs[idx].description = e.target.value;
                             setPendingTransactions(newTxs);
                           }}
-                          className="w-full bg-transparent border-b border-slate-200 focus:border-indigo-500 outline-none text-sm py-1"
+                          className="w-full bg-transparent border-b border-slate-200 focus:border-indigo-500 outline-none text-xs py-1"
                         />
                       </div>
                       <div>
@@ -1283,10 +1296,10 @@ export default function App() {
                             newTxs[idx].date = new Date(e.target.value).toISOString();
                             setPendingTransactions(newTxs);
                           }}
-                          className="w-full bg-transparent border-b border-slate-200 focus:border-indigo-500 outline-none text-sm py-1"
+                          className="w-full bg-transparent border-b border-slate-200 focus:border-indigo-500 outline-none text-xs py-1"
                         />
                       </div>
-                      <div>
+                      <div className="sm:col-span-2">
                         <label className="text-[10px] font-bold text-slate-400 uppercase">Category</label>
                         <select 
                           value={tx.category}
@@ -1295,7 +1308,7 @@ export default function App() {
                             newTxs[idx].category = e.target.value;
                             setPendingTransactions(newTxs);
                           }}
-                          className="w-full bg-transparent border-b border-slate-200 focus:border-indigo-500 outline-none text-sm py-1"
+                          className="w-full bg-transparent border-b border-slate-200 focus:border-indigo-500 outline-none text-xs py-1"
                         >
                           {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                           {!CATEGORIES.includes(tx.category) && <option value={tx.category}>{tx.category}</option>}
@@ -1311,14 +1324,14 @@ export default function App() {
                                 setPendingTransactions(newTxs);
                               }
                             }}
-                            className="w-full mt-1 bg-slate-50 px-2 py-1 rounded text-xs border border-slate-200 outline-none"
+                            className="w-full mt-1 bg-slate-50 px-2 py-1 rounded text-[10px] border border-slate-200 outline-none"
                           />
                         )}
                       </div>
                     </div>
-                    <div className="flex flex-col justify-between items-end">
+                    <div className="flex justify-between items-center pt-2 border-t border-slate-100">
                       <span className={cn(
-                        "text-[10px] px-2 py-1 rounded-full font-bold uppercase",
+                        "text-[9px] px-2 py-0.5 rounded-full font-bold uppercase",
                         tx.confidence === 'high' ? "bg-green-100 text-green-700" :
                         tx.confidence === 'medium' ? "bg-amber-100 text-amber-700" :
                         "bg-red-100 text-red-700"
@@ -1329,25 +1342,25 @@ export default function App() {
                         onClick={() => setPendingTransactions(prev => prev.filter((_, i) => i !== idx))}
                         className="text-red-400 hover:text-red-600 p-1"
                       >
-                        <Trash2 size={18} />
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="p-6 border-t border-slate-100 flex gap-3">
+              <div className="p-4 md:p-6 border-t border-slate-100 flex flex-col sm:flex-row gap-3">
                 <button 
                   onClick={() => setPendingTransactions([])}
-                  className="flex-1 px-6 py-3 rounded-xl font-bold border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all"
+                  className="w-full sm:flex-1 px-6 py-3 rounded-xl font-bold border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all text-sm"
                 >
                   Discard All
                 </button>
                 <button 
                   onClick={confirmTransactions}
-                  className="flex-[2] bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
+                  className="w-full sm:flex-[2] bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 text-sm"
                 >
-                  Confirm & Add {pendingTransactions.length} Transactions
+                  Confirm {pendingTransactions.length} Txs
                 </button>
               </div>
             </motion.div>
@@ -1370,20 +1383,20 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
+              className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[95vh] m-2"
             >
-              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <div className="p-4 md:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900">Spending Insights</h2>
-                  <p className="text-xs text-slate-500">Visual breakdown of your finances</p>
+                  <h2 className="text-lg md:text-xl font-bold text-slate-900">Spending Insights</h2>
+                  <p className="text-[10px] md:text-xs text-slate-500">Visual breakdown of your finances</p>
                 </div>
                 <button onClick={() => setIsViewingInsights(false)} className="text-slate-400 hover:text-slate-600">
                   <XCircle size={24} />
                 </button>
               </div>
               
-              <div className="p-6 overflow-y-auto flex-1 space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="p-4 md:p-6 overflow-y-auto flex-1 space-y-6 md:space-y-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
                   {/* Category Breakdown */}
                   <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
                     <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
@@ -1477,19 +1490,19 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-white w-full max-w-md rounded-2xl shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
+              className="bg-white w-full max-w-md rounded-2xl shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[95vh] m-2"
             >
-              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <div className="p-4 md:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900">Financial Goals</h2>
-                  <p className="text-xs text-slate-500">Track your progress towards big dreams</p>
+                  <h2 className="text-lg md:text-xl font-bold text-slate-900">Financial Goals</h2>
+                  <p className="text-[10px] md:text-xs text-slate-500">Track your progress towards big dreams</p>
                 </div>
                 <button onClick={() => setIsManagingGoals(false)} className="text-slate-400 hover:text-slate-600">
                   <XCircle size={24} />
                 </button>
               </div>
               
-              <div className="p-6 overflow-y-auto flex-1 space-y-6">
+              <div className="p-4 md:p-6 overflow-y-auto flex-1 space-y-6">
                 <form 
                   onSubmit={(e) => {
                     e.preventDefault();
@@ -1612,19 +1625,19 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-white w-full max-w-md rounded-2xl shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
+              className="bg-white w-full max-w-md rounded-2xl shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[95vh] m-2"
             >
-              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <div className="p-4 md:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900">Monthly Budgets</h2>
-                  <p className="text-xs text-slate-500">Set spending limits for each category</p>
+                  <h2 className="text-lg md:text-xl font-bold text-slate-900">Monthly Budgets</h2>
+                  <p className="text-[10px] md:text-xs text-slate-500">Set spending limits for each category</p>
                 </div>
                 <button onClick={() => setIsManagingBudgets(false)} className="text-slate-400 hover:text-slate-600">
                   <XCircle size={24} />
                 </button>
               </div>
               
-              <div className="p-6 overflow-y-auto flex-1 space-y-6">
+              <div className="p-4 md:p-6 overflow-y-auto flex-1 space-y-6">
                 <form 
                   onSubmit={(e) => {
                     e.preventDefault();
