@@ -395,19 +395,19 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-20">
-      {/* Header & Stats */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 px-4 py-6">
+      {/* Header */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 px-4 py-3 md:py-4">
         <div className="max-w-4xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div className="flex items-center gap-3">
-              <div className="bg-indigo-600 p-2.5 rounded-xl shadow-lg shadow-indigo-200">
-                <IndianRupee className="text-white" size={24} />
+              <div className="bg-indigo-600 p-2 rounded-xl shadow-lg shadow-indigo-200">
+                <IndianRupee className="text-white" size={20} />
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                <h1 className="text-xl font-bold tracking-tight text-slate-900">
                   TrackMint
                 </h1>
-                <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">Wealth Tracker</p>
+                <p className="text-[9px] font-bold text-indigo-600 uppercase tracking-widest">Wealth Tracker</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-2 w-full md:w-auto">
@@ -418,126 +418,127 @@ export default function App() {
                     window.location.reload();
                   }
                 }}
-                className="flex-1 md:flex-none bg-red-50 text-red-600 px-3 py-2 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-red-100 transition-colors text-xs"
+                className="flex-1 md:flex-none bg-red-50 text-red-600 px-2.5 py-1.5 rounded-lg font-medium flex items-center justify-center gap-1.5 hover:bg-red-100 transition-colors text-[10px]"
                 title="Clear All Data"
               >
-                <Trash2 size={14} />
+                <Trash2 size={12} />
                 Reset
               </button>
               <button 
                 onClick={() => setIsManagingRecurring(true)}
-                className="flex-1 md:flex-none bg-slate-100 text-slate-700 px-3 py-2 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-slate-200 transition-colors text-xs"
+                className="flex-1 md:flex-none bg-slate-100 text-slate-700 px-2.5 py-1.5 rounded-lg font-medium flex items-center justify-center gap-1.5 hover:bg-slate-200 transition-colors text-[10px]"
               >
-                <Repeat size={14} />
+                <Repeat size={12} />
                 Recurring
               </button>
               <button 
                 onClick={() => setIsManagingBudgets(true)}
-                className="flex-1 md:flex-none bg-slate-100 text-slate-700 px-3 py-2 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-slate-200 transition-colors text-xs"
+                className="flex-1 md:flex-none bg-slate-100 text-slate-700 px-2.5 py-1.5 rounded-lg font-medium flex items-center justify-center gap-1.5 hover:bg-slate-200 transition-colors text-[10px]"
               >
-                <Filter size={14} />
+                <Filter size={12} />
                 Budgets
               </button>
               <button 
                 onClick={() => setIsManagingGoals(true)}
-                className="flex-1 md:flex-none bg-slate-100 text-slate-700 px-3 py-2 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-slate-200 transition-colors text-xs"
+                className="flex-1 md:flex-none bg-slate-100 text-slate-700 px-2.5 py-1.5 rounded-lg font-medium flex items-center justify-center gap-1.5 hover:bg-slate-200 transition-colors text-[10px]"
               >
-                <TrendingUp size={14} />
+                <TrendingUp size={12} />
                 Goals
               </button>
               <button 
                 onClick={() => setIsViewingInsights(true)}
-                className="flex-1 md:flex-none bg-slate-100 text-slate-700 px-3 py-2 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-slate-200 transition-colors text-xs"
+                className="flex-1 md:flex-none bg-slate-100 text-slate-700 px-2.5 py-1.5 rounded-lg font-medium flex items-center justify-center gap-1.5 hover:bg-slate-200 transition-colors text-[10px]"
               >
-                <BarChart3 size={14} />
+                <BarChart3 size={12} />
                 Insights
               </button>
               <button 
                 onClick={() => setIsManagingAssets(true)}
-                className="flex-1 md:flex-none bg-slate-100 text-slate-700 px-3 py-2 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-slate-200 transition-colors text-xs"
+                className="flex-1 md:flex-none bg-slate-100 text-slate-700 px-2.5 py-1.5 rounded-lg font-medium flex items-center justify-center gap-1.5 hover:bg-slate-200 transition-colors text-[10px]"
               >
-                <Wallet size={14} />
+                <Wallet size={12} />
                 Assets
               </button>
               <button 
                 onClick={() => setIsAddingManual(true)}
-                className="flex-[2] md:flex-none bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-indigo-700 transition-colors shadow-sm text-xs"
+                className="flex-[2] md:flex-none bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-medium flex items-center justify-center gap-1.5 hover:bg-indigo-700 transition-colors shadow-sm text-[10px]"
               >
-                <Plus size={16} />
+                <Plus size={14} />
                 Add
               </button>
             </div>
           </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white p-3 md:p-4 rounded-xl border border-slate-200 shadow-sm"
-            >
-              <div className="flex items-center gap-2 text-slate-500 mb-1">
-                <TrendingUp size={14} className="text-green-600" />
-                <span className="text-[10px] md:text-xs font-medium">Income</span>
-              </div>
-              <p className="text-base md:text-lg font-bold text-green-600">₹{stats.totalIncome.toLocaleString()}</p>
-            </motion.div>
-
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-white p-3 md:p-4 rounded-xl border border-slate-200 shadow-sm"
-            >
-              <div className="flex items-center gap-2 text-slate-500 mb-1">
-                <ArrowUpRight size={14} className="text-red-600" />
-                <span className="text-[10px] md:text-xs font-medium">Expenses</span>
-              </div>
-              <p className="text-base md:text-lg font-bold text-red-600">₹{stats.totalExpenses.toLocaleString()}</p>
-            </motion.div>
-
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="bg-white p-3 md:p-4 rounded-xl border border-slate-200 shadow-sm"
-            >
-              <div className="flex items-center gap-2 text-slate-500 mb-1">
-                <Clock size={14} className="text-blue-600" />
-                <span className="text-[10px] md:text-xs font-medium">Receivable</span>
-              </div>
-              <p className="text-base md:text-lg font-bold text-blue-600">₹{stats.totalReceivable.toLocaleString()}</p>
-            </motion.div>
-
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-white p-3 md:p-4 rounded-xl border border-slate-200 shadow-sm"
-            >
-              <div className="flex items-center gap-2 text-slate-500 mb-1">
-                <Wallet size={14} className="text-indigo-600" />
-                <span className="text-[10px] md:text-xs font-medium">Savings</span>
-              </div>
-              <p className="text-base md:text-lg font-bold text-indigo-600">₹{stats.savings.toLocaleString()}</p>
-            </motion.div>
-
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="bg-white p-3 md:p-4 rounded-xl border border-slate-200 shadow-sm col-span-2 lg:col-span-1"
-            >
-              <div className="flex items-center gap-2 text-slate-500 mb-1">
-                <Coins size={14} className="text-amber-600" />
-                <span className="text-[10px] md:text-xs font-medium">Net Worth</span>
-              </div>
-              <p className="text-base md:text-lg font-bold text-amber-600">₹{Math.round(stats.assetValue).toLocaleString()}</p>
-            </motion.div>
-          </div>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 mt-8">
+      <main className="max-w-4xl mx-auto px-4 mt-6">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 mb-8">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white p-3 md:p-4 rounded-xl border border-slate-200 shadow-sm"
+          >
+            <div className="flex items-center gap-2 text-slate-500 mb-1">
+              <TrendingUp size={14} className="text-green-600" />
+              <span className="text-[10px] md:text-xs font-medium">Income</span>
+            </div>
+            <p className="text-base md:text-lg font-bold text-green-600">₹{stats.totalIncome.toLocaleString()}</p>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-white p-3 md:p-4 rounded-xl border border-slate-200 shadow-sm"
+          >
+            <div className="flex items-center gap-2 text-slate-500 mb-1">
+              <ArrowUpRight size={14} className="text-red-600" />
+              <span className="text-[10px] md:text-xs font-medium">Expenses</span>
+            </div>
+            <p className="text-base md:text-lg font-bold text-red-600">₹{stats.totalExpenses.toLocaleString()}</p>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white p-3 md:p-4 rounded-xl border border-slate-200 shadow-sm"
+          >
+            <div className="flex items-center gap-2 text-slate-500 mb-1">
+              <Clock size={14} className="text-blue-600" />
+              <span className="text-[10px] md:text-xs font-medium">Receivable</span>
+            </div>
+            <p className="text-base md:text-lg font-bold text-blue-600">₹{stats.totalReceivable.toLocaleString()}</p>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white p-3 md:p-4 rounded-xl border border-slate-200 shadow-sm"
+          >
+            <div className="flex items-center gap-2 text-slate-500 mb-1">
+              <Wallet size={14} className="text-indigo-600" />
+              <span className="text-[10px] md:text-xs font-medium">Savings</span>
+            </div>
+            <p className="text-base md:text-lg font-bold text-indigo-600">₹{stats.savings.toLocaleString()}</p>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="bg-white p-3 md:p-4 rounded-xl border border-slate-200 shadow-sm col-span-2 lg:col-span-1"
+          >
+            <div className="flex items-center gap-2 text-slate-500 mb-1">
+              <Coins size={14} className="text-amber-600" />
+              <span className="text-[10px] md:text-xs font-medium">Net Worth</span>
+            </div>
+            <p className="text-base md:text-lg font-bold text-amber-600">₹{Math.round(stats.assetValue).toLocaleString()}</p>
+          </motion.div>
+        </div>
+
         {/* Upload Area */}
         <div 
           {...getRootProps()} 

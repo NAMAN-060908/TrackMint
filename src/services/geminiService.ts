@@ -23,7 +23,7 @@ export async function fetchAssetPrices(stockSymbols: string[]): Promise<AssetPri
   try {
     const response = await ai.models.generateContent({
       model,
-      contents: [{ text: prompt }],
+      contents: { text: prompt },
       config: {
         tools: [{ googleSearch: {} }],
         responseMimeType: "application/json",
@@ -66,21 +66,24 @@ export async function analyzeUPIScreenshot(base64Image: string): Promise<Partial
   Return the data as a JSON array of objects.`;
 
   try {
+    const mimeType = base64Image.includes(";") ? base64Image.split(";")[0].split(":")[1] : "image/jpeg";
+    const imageData = base64Image.split(",")[1] || base64Image;
+
+    console.log("Analyzing screenshot with mimeType:", mimeType);
+
     const response = await ai.models.generateContent({
       model,
-      contents: [
-        {
-          parts: [
-            { text: prompt },
-            {
-              inlineData: {
-                mimeType: "image/jpeg",
-                data: base64Image.split(",")[1] || base64Image,
-              },
+      contents: {
+        parts: [
+          { text: prompt },
+          {
+            inlineData: {
+              mimeType,
+              data: imageData,
             },
-          ],
-        },
-      ],
+          },
+        ],
+      },
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -103,7 +106,10 @@ export async function analyzeUPIScreenshot(base64Image: string): Promise<Partial
     });
 
     const text = response.text;
-    if (!text) return [];
+    if (!text) {
+      console.warn("Gemini returned empty text for screenshot analysis");
+      return [];
+    }
     return JSON.parse(text);
   } catch (error) {
     console.error("Error analyzing screenshot:", error);
