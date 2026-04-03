@@ -1,0 +1,5 @@
+{
+  "name": "TrackMint",
+  "description": "Track expenses automatically from UPI screenshots or manual entries with refundable expense tracking and asset management.",
+  "requestFramePermissions": []
+}
