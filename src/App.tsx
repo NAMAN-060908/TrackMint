@@ -8,7 +8,8 @@ import { Plus, Upload, Filter, Search, IndianRupee, Receipt, Wallet, ArrowUpRigh
 import { motion, AnimatePresence } from 'motion/react';
 import { format, addDays, addWeeks, addMonths, addYears, isBefore, startOfDay } from 'date-fns';
 import { useDropzone } from 'react-dropzone';
-import { Transaction, TransactionType, PaymentMethod, Asset, AssetPrice, ConfidenceLevel, RecurringTransaction, RecurringFrequency, Budget } from './types';
+import { Transaction, TransactionType, PaymentMethod, Asset, AssetPrice, ConfidenceLevel, RecurringTransaction, RecurringFrequency, Budget, FinancialGoal } from './types';
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { analyzeUPIScreenshot, fetchAssetPrices } from './services/geminiService';
 import { cn } from './lib/utils';
 
@@ -44,6 +45,11 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [goals, setGoals] = useState<FinancialGoal[]>(() => {
+    const saved = localStorage.getItem('goals');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [assetPrices, setAssetPrices] = useState<AssetPrice>({
     gold: 7500,
     silver: 95,
@@ -54,6 +60,8 @@ export default function App() {
   const [isManagingAssets, setIsManagingAssets] = useState(false);
   const [isManagingRecurring, setIsManagingRecurring] = useState(false);
   const [isManagingBudgets, setIsManagingBudgets] = useState(false);
+  const [isManagingGoals, setIsManagingGoals] = useState(false);
+  const [isViewingInsights, setIsViewingInsights] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [pendingTransactions, setPendingTransactions] = useState<Transaction[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -97,6 +105,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('budgets', JSON.stringify(budgets));
   }, [budgets]);
+
+  useEffect(() => {
+    localStorage.setItem('goals', JSON.stringify(goals));
+  }, [goals]);
 
   // Process recurring transactions
   useEffect(() => {
@@ -217,6 +229,46 @@ export default function App() {
       percent: Math.min(100, ((monthlySpendingByCategory[b.category] || 0) / b.limit) * 100)
     }));
 
+    // Chart Data: Category Breakdown (All time or current month)
+    const categoryData = Object.entries(
+      transactions
+        .filter(t => t.type === 'expense')
+        .reduce((acc, t) => {
+          acc[t.category] = (acc[t.category] || 0) + t.amount;
+          return acc;
+        }, {} as Record<string, number>)
+    ).map(([name, value]) => ({ name, value }));
+
+    // Chart Data: Monthly Trend (Last 6 months)
+    const monthlyTrend = Array.from({ length: 6 }).map((_, i) => {
+      const d = new Date();
+      d.setMonth(d.getMonth() - (5 - i));
+      const monthLabel = format(d, 'MMM');
+      const month = d.getMonth();
+      const year = d.getFullYear();
+      
+      const income = transactions
+        .filter(t => {
+          const td = new Date(t.date);
+          return t.type === 'income' && td.getMonth() === month && td.getFullYear() === year;
+        })
+        .reduce((acc, t) => acc + t.amount, 0);
+
+      const expense = transactions
+        .filter(t => {
+          const td = new Date(t.date);
+          return t.type === 'expense' && td.getMonth() === month && td.getFullYear() === year;
+        })
+        .reduce((acc, t) => acc + t.amount, 0);
+
+      return { name: monthLabel, income, expense };
+    });
+
+    const goalStats = goals.map(g => ({
+      ...g,
+      percent: Math.min(100, (g.currentAmount / g.targetAmount) * 100)
+    }));
+
     const savings = totalIncome - totalExpenses;
 
     const assetValue = assets.reduce((acc, asset) => {
@@ -229,8 +281,8 @@ export default function App() {
       return acc;
     }, 0);
 
-    return { totalExpenses, totalIncome, totalRefundable, totalRefunded, totalReceivable, totalPayable, savings, assetValue, budgetStats };
-  }, [transactions, assets, assetPrices, budgets]);
+    return { totalExpenses, totalIncome, totalRefundable, totalRefunded, totalReceivable, totalPayable, savings, assetValue, budgetStats, categoryData, monthlyTrend, goalStats };
+  }, [transactions, assets, assetPrices, budgets, goals]);
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter(t => {
@@ -361,17 +413,31 @@ export default function App() {
             <div className="flex gap-2">
               <button 
                 onClick={() => setIsManagingRecurring(true)}
-                className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-slate-200 transition-colors"
+                className="bg-slate-100 text-slate-700 px-3 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-slate-200 transition-colors text-sm"
               >
-                <Repeat size={18} />
+                <Repeat size={16} />
                 Recurring
               </button>
               <button 
                 onClick={() => setIsManagingBudgets(true)}
-                className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-slate-200 transition-colors"
+                className="bg-slate-100 text-slate-700 px-3 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-slate-200 transition-colors text-sm"
               >
-                <Filter size={18} />
+                <Filter size={16} />
                 Budgets
+              </button>
+              <button 
+                onClick={() => setIsManagingGoals(true)}
+                className="bg-slate-100 text-slate-700 px-3 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-slate-200 transition-colors text-sm"
+              >
+                <TrendingUp size={16} />
+                Goals
+              </button>
+              <button 
+                onClick={() => setIsViewingInsights(true)}
+                className="bg-slate-100 text-slate-700 px-3 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-slate-200 transition-colors text-sm"
+              >
+                <BarChart3 size={16} />
+                Insights
               </button>
               <button 
                 onClick={() => setIsManagingAssets(true)}
@@ -525,6 +591,54 @@ export default function App() {
                 </p>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Financial Goals */}
+        {stats.goalStats.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <TrendingUp size={20} className="text-indigo-600" />
+              Financial Goals
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {stats.goalStats.map(goal => (
+                <div key={goal.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500" />
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="font-bold text-slate-900">{goal.name}</h3>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{goal.category}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-indigo-600">₹{goal.currentAmount.toLocaleString()}</p>
+                      <p className="text-[10px] text-slate-400">of ₹{goal.targetAmount.toLocaleString()}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                      <span>Progress</span>
+                      <span>{Math.round(goal.percent)}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${goal.percent}%` }}
+                        className="h-full bg-indigo-600"
+                      />
+                    </div>
+                  </div>
+                  
+                  {goal.deadline && (
+                    <div className="mt-4 flex items-center gap-1.5 text-[10px] text-slate-500 font-medium">
+                      <Clock size={12} />
+                      Target: {format(new Date(goal.deadline), 'MMM dd, yyyy')}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -1235,6 +1349,248 @@ export default function App() {
                 >
                   Confirm & Add {pendingTransactions.length} Transactions
                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Spending Insights Modal */}
+      <AnimatePresence>
+        {isViewingInsights && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsViewingInsights(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900">Spending Insights</h2>
+                  <p className="text-xs text-slate-500">Visual breakdown of your finances</p>
+                </div>
+                <button onClick={() => setIsViewingInsights(false)} className="text-slate-400 hover:text-slate-600">
+                  <XCircle size={24} />
+                </button>
+              </div>
+              
+              <div className="p-6 overflow-y-auto flex-1 space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Category Breakdown */}
+                  <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                    <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
+                      <Tag size={18} className="text-indigo-600" />
+                      Category Breakdown
+                    </h3>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={stats.categoryData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={5}
+                            dataKey="value"
+                          >
+                            {stats.categoryData.map((_, index) => (
+                              <Cell key={`cell-${index}`} fill={['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'][index % 7]} />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            formatter={(value: number) => `₹${value.toLocaleString()}`}
+                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                          />
+                          <Legend verticalAlign="bottom" height={36}/>
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {/* Monthly Trend */}
+                  <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                    <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
+                      <BarChart3 size={18} className="text-indigo-600" />
+                      Monthly Trend
+                    </h3>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={stats.monthlyTrend}>
+                          <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                          <YAxis hide />
+                          <Tooltip 
+                            formatter={(value: number) => `₹${value.toLocaleString()}`}
+                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                          />
+                          <Bar dataKey="income" fill="#10b981" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="expense" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Summary Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-green-50 p-4 rounded-xl border border-green-100">
+                    <p className="text-[10px] font-bold text-green-600 uppercase">Avg. Monthly Income</p>
+                    <p className="text-xl font-bold text-green-900">₹{Math.round(stats.monthlyTrend.reduce((acc, m) => acc + m.income, 0) / 6).toLocaleString()}</p>
+                  </div>
+                  <div className="bg-red-50 p-4 rounded-xl border border-red-100">
+                    <p className="text-[10px] font-bold text-red-600 uppercase">Avg. Monthly Expense</p>
+                    <p className="text-xl font-bold text-red-900">₹{Math.round(stats.monthlyTrend.reduce((acc, m) => acc + m.expense, 0) / 6).toLocaleString()}</p>
+                  </div>
+                  <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                    <p className="text-[10px] font-bold text-indigo-600 uppercase">Savings Rate</p>
+                    <p className="text-xl font-bold text-indigo-900">
+                      {stats.totalIncome > 0 ? Math.round((stats.savings / stats.totalIncome) * 100) : 0}%
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Financial Goals Management Modal */}
+      <AnimatePresence>
+        {isManagingGoals && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsManagingGoals(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white w-full max-w-md rounded-2xl shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900">Financial Goals</h2>
+                  <p className="text-xs text-slate-500">Track your progress towards big dreams</p>
+                </div>
+                <button onClick={() => setIsManagingGoals(false)} className="text-slate-400 hover:text-slate-600">
+                  <XCircle size={24} />
+                </button>
+              </div>
+              
+              <div className="p-6 overflow-y-auto flex-1 space-y-6">
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.currentTarget);
+                    const newGoal: FinancialGoal = {
+                      id: crypto.randomUUID(),
+                      name: formData.get('name') as string,
+                      targetAmount: Number(formData.get('targetAmount')),
+                      currentAmount: Number(formData.get('currentAmount')),
+                      category: formData.get('category') as string,
+                      deadline: formData.get('deadline') as string || undefined,
+                    };
+                    setGoals(prev => [...prev, newGoal]);
+                    e.currentTarget.reset();
+                    addToast(`Goal "${newGoal.name}" created!`);
+                  }}
+                  className="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200"
+                >
+                  <h3 className="font-bold text-sm flex items-center gap-2"><Plus size={16} /> Create New Goal</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Goal Name</label>
+                      <input name="name" required placeholder="e.g. Dream House" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Target (₹)</label>
+                        <input name="targetAmount" type="number" required placeholder="0.00" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Saved (₹)</label>
+                        <input name="currentAmount" type="number" required placeholder="0.00" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Category</label>
+                        <select name="category" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-indigo-500">
+                          <option value="Savings">Savings</option>
+                          <option value="Investment">Investment</option>
+                          <option value="Purchase">Purchase</option>
+                          <option value="Emergency">Emergency</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Deadline</label>
+                        <input name="deadline" type="date" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500" />
+                      </div>
+                    </div>
+                  </div>
+                  <button type="submit" className="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-bold shadow-md shadow-indigo-100 hover:bg-indigo-700 transition-colors">
+                    Create Goal
+                  </button>
+                </form>
+
+                <div className="space-y-3">
+                  <h3 className="font-bold text-sm text-slate-700">Active Goals</h3>
+                  {goals.map(goal => (
+                    <div key={goal.id} className="bg-white p-4 rounded-xl border border-slate-200 flex justify-between items-center group">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-sm text-slate-900">{goal.name}</p>
+                          <span className="text-[9px] px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded font-bold uppercase">{goal.category}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden max-w-[100px]">
+                            <div className="h-full bg-indigo-500" style={{ width: `${(goal.currentAmount / goal.targetAmount) * 100}%` }} />
+                          </div>
+                          <p className="text-[10px] text-slate-500">₹{goal.currentAmount.toLocaleString()} / ₹{goal.targetAmount.toLocaleString()}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button 
+                          onClick={() => {
+                            const amount = prompt("Enter amount to add to this goal:");
+                            if (amount && !isNaN(Number(amount))) {
+                              setGoals(prev => prev.map(g => g.id === goal.id ? { ...g, currentAmount: g.currentAmount + Number(amount) } : g));
+                              addToast(`Added ₹${amount} to ${goal.name}`);
+                            }
+                          }}
+                          className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                          title="Add savings"
+                        >
+                          <Plus size={16} />
+                        </button>
+                        <button 
+                          onClick={() => setGoals(prev => prev.filter(g => g.id !== goal.id))}
+                          className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {goals.length === 0 && (
+                    <div className="text-center py-10 border-2 border-dashed border-slate-100 rounded-xl">
+                      <TrendingUp className="mx-auto text-slate-200 mb-2" size={32} />
+                      <p className="text-xs text-slate-400">No goals set yet</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </motion.div>
           </div>
